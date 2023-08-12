@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cart Form</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            max-width: 300px;
+            margin-bottom: 20px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        input[type="number"] {
+    padding: 8px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    
+}
+        input[type="text"],
+        button[type="submit"] {
+            /* ... */
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        button[type="submit"] {
+            background-color: #48a3ff;
+            color: #fff;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #68e6ff;
+        }
+
+        #cartItems {
+            list-style: none;
+            padding: 0;
+        }
+
+        #cartItems li {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+
+        #toggleButton {
+            margin-top: 20px;
+            /* Add margin */
+            background-color: #48a3ff;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 100%;
+            height: 30px;
+        }
+
+        #toggleButton:hover {
+            background-color: #46d7ff;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        input[type="text"] {
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            outline: 20px solid #ccc;
+            padding: 20px;
+
+            border-radius: 10px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            padding-bottom: 150px;
+        }
+
+        .column1,
+        .column2 {
+            flex: 1;
+        }
+
+        .column1 {
+            margin-left: 20%;
+        }
+
+        .column2 {
+            margin-left: -10%;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="column1">
+            <h1>Cart Form</h1>
+
+            <!-- Add Item Form -->
+            <h2>Add Item</h2>
+
+            <form id="addForm" action="/cart/add" method="POST">
+                <input type="text" name="cartItem" placeholder="Item name" required>
+                <input type="text" name="itemQty" placeholder="Qty" required>
+                <button type="submit">Add</button>
+            </form>
+
+            <!-- Remove Item Form -->
+            <h2>Remove Item</h2>
+            <form id="removeForm" action="/cart/remove" method="POST">
+                <input type="text" name="id" placeholder="Item ID" required>
+                <button type="submit">Remove</button>
+            </form>
+            <!-- Update Item Form -->
+            <h2>Update Item</h2>
+            <form id="updateForm" action="/cart/update" method="POST">
+                <input type="text" name="id" placeholder="Item ID" required>
+                <input type="number" name="itemQty" placeholder="New Qty" required min="0">
+                <button type="submit">Update</button>
+            </form>
+        </div>
+        <div class="column2">
+            <!-- Show Items Button -->
+            <h2>Items</h2>
+            <button id="toggleButton">Show Items</button>
+
+            <!-- Display Cart Items -->
+            <h2>Cart Items</h2>
+            <ul id="cartItems"></ul>
+        </div>
+    </div>
+    <script>
+        // Handle form submissions
+        document.getElementById('addForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const item = form.elements.cartItem.value;
+            const qty = form.elements.itemQty.value;
+            addItem(item, qty);
+            form.reset();
+        });
+
+        // Handle delete items button click
+        document.getElementById('removeForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const id = form.elements.id.value;
+            removeItem(id);
+            form.reset();
+        });
+
+        // Handle update items button click
+        document.getElementById('updateForm').addEventListener('submit', (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const id = form.elements['id'].value;
+            const qty = form.elements['itemQty'].value;
+            updateItem(id, qty);
+            form.reset();
+        });
+
+        // Toggle items button and function
+        const toggleButton = document.getElementById('toggleButton');
+        let itemsVisible = false;
+
+        toggleButton.addEventListener('click', () => {
+            itemsVisible = !itemsVisible;
+            toggleButton.textContent = itemsVisible ? 'Hide Items' : 'Show Items';
+
+            if (itemsVisible) {
+                showItems();
+            } else {
+                hideItems();
+            }
+        });
+
+        // Function to add an item to the cart
+        function addItem(item, qty) {
+            fetch('/cart/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 'cartItem': item, 'itemQty': qty })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                showItems();
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+
+        // Function to remove an item from the cart
+        function removeItem(id) {
+            fetch(`/cart/remove/${id}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                showItems();
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+
+        // Function to update an item in the cart
+        function updateItem(id, qty) {
+            fetch(`/cart/update/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 'itemQty': qty })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log(data);
+                showItems(); 
+            })
+            .catch(error => {
+                console.error(error);
+            });
+        }
+
+     
+// Function to fetch and display cart items
+function showItems() {
+    fetch('/cart/show')
+        .then(response => response.json())
+        .then(data => {
+            const cartItemsElement = document.getElementById('cartItems');
+            cartItemsElement.innerHTML = '';
+
+            data.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `ID: ${item.id}, ${item.item_name}: ${item.item_quantity}`;
+                cartItemsElement.appendChild(li);
+            });
+        })
+        .catch(error => {
+            console.error(error);
+        });
+}
+function hideItems() {
+    const cartItemsElement = document.getElementById('cartItems');
+    cartItemsElement.innerHTML = '';
+}
+
+    </script>
+</body>
+
+</html>
